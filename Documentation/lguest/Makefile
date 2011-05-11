@@ -2,7 +2,7 @@
 # Missing headers?  Add "-I../../include -I../../arch/x86/include"
 CFLAGS:=-m32 -Wall -Wmissing-declarations -Wmissing-prototypes -O3 -U_FORTIFY_SOURCE
 
-all: lguest
+all: lguest_32
 
 clean:
-	rm -f lguest
+	rm -f lguest_32
