@@ -27,9 +27,9 @@
 #define GET_CR2_INTO_RCX movq %cr2, %rcx
 #endif
 
-/* we are not able to switch in one step to the final KERNEL ADDRESS SPACE
+/* 
+ * we are not able to switch in one step to the final KERNEL ADDRESS SPACE
  * because we need identity-mapped pages.
- *
  */
 
 #define pud_index(x)	(((x) >> PUD_SHIFT) & (PTRS_PER_PUD-1))
@@ -42,8 +42,8 @@ L3_START_KERNEL = pud_index(__START_KERNEL_map)
 	.text
 	__HEAD
 	.code64
-	.globl startup_64
-startup_64:
+/* FIXME */
+ENTRY(startup_64)
 
 	/*
 	 * At this point the CPU runs in 64bit mode CS.L = 1 CS.D = 1,
@@ -136,14 +136,56 @@ ident_complete:
 	/* Fixup phys_base */
 	addq	%rbp, phys_base(%rip)
 
+<<<<<<< HEAD
 	/* Fixup trampoline */
+=======
+#ifdef CONFIG_PARAVIRT
+	/* This is can only trip for a broken bootloader... */
+	cmpw $0x207, boot_params + BP_version - __START_KERNEL_map /* FIXME */
+	jb default_entry
+
+	/* Paravirt-compatible boot parameters.  Look to see what architecture
+		we're booting under. */
+	movq boot_params + BP_hardware_subarch - __START_KERNEL_map, %rax
+	cmpq $num_subarch_entries, %rax
+	jae bad_subarch
+
+	movq subarch_entries - __START_KERNEL_map(,%rax,8), %rax
+	subq $__START_KERNEL_map, %rax
+	jmp *%rax
+
+bad_subarch:
+WEAK(lguest_entry)
+	/* Unknown implementation; there's really
+	   nothing we can do at this point. */
+	ud2a
+
+	__INITDATA
+
+/* FIXME */
+subarch_entries:
+	.quad default_entry		/* normal x86/PC */
+	.quad lguest_entry		/* lguest64 hypervisor */
+/* we don't need this */
+/*	.quad default_entry		 Moorestown MID */
+num_subarch_entries = (. - subarch_entries) / 8
+.previous
+#else
+	jmp default_entry
+#endif /* CONFIG_PARAVIRT */
+
+
+/* FIXME */
+default_entry:
+#ifdef CONFIG_X86_TRAMPOLINE
+>>>>>>> Initial boot files and launcher for 64bit (stripped down)
 	addq	%rbp, trampoline_level4_pgt + 0(%rip)
 	addq	%rbp, trampoline_level4_pgt + (511*8)(%rip)
 
 	/* Due to ENTRY(), sometimes the empty space gets filled with
 	 * zeros. Better take a jmp than relying on empty space being
 	 * filled with 0x90 (nop)
-	 */
+	 */  
 	jmp secondary_startup_64
 ENTRY(secondary_startup_64)
 	/*
